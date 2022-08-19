@@ -15,5 +15,8 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "dev": "tsc -W"
+  },
+  "dependencies": {
+    "dgram": "^1.0.1"
   }
 }
