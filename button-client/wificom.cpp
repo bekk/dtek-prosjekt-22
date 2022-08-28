@@ -1,7 +1,13 @@
 #include "wificom.h"
 
 #define WIFI_CONNECT
-#ifdef WIFI_CONNECT
+
+#ifndef WIFI_CONNECT
+void connectToWifi(){}
+void sendYPR(float* ypr){}
+void checkWifi(){}
+#elif
+
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
@@ -60,9 +66,6 @@ unsigned long intervalBetweenWifiRetries = 5000;
 
 void reconnectToWifi() {
   unsigned long currentMillis = millis();
-  // if WiFi is down, try reconnecting
-  // TODO: Need to wait for connection by polling status. Timeout after some time perhaps and
-  // retry instead.
   if (!connected && (currentMillis - lastWifiConnectionTry >= intervalBetweenWifiRetries)) {
     Serial.print(millis());
     Serial.println("Reconnecting to WiFi...");

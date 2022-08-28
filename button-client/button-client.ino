@@ -106,7 +106,6 @@ void loop()
       fifoCount = mpu.getFIFOCount();
     }
   }
-  //delay(100);
 
   mpuInterrupt = false;
   mpuIntStatus = mpu.getIntStatus();
