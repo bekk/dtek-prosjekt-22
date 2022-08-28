@@ -1,15 +1,7 @@
-#include <WiFi.h>
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "Wire.h"
-
-//#define WIFI_CONNECT
-#ifdef WIFI_CONNECT
-const char *ssid = "monopoly";
-const char *password = "jupiter8prophet5";
-const char *host = "192.168.1.38";
-WiFiClient client;
-#endif
+#include "wificom.h"
 
 #define MAKEPYTHON_ESP32_SDA 4
 #define MAKEPYTHON_ESP32_SCL 5
@@ -38,27 +30,13 @@ void dmpDataReady()
   mpuInterrupt = true;
 }
 
-#ifdef WIFI_CONNECT
-void connectToWifi() {
-  WiFi.begin(ssid, password);
-
-  // TODO: Reconnect!
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-    Serial.println("Connected to wifi");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-  }
-}
-#endif
-
 void setup()
 {
   Serial.begin(115200);
   Serial.println(F("Button client starting..."));
 
+  connectToWifi();
+  
   pinMode(21, OUTPUT);
   digitalWrite(21, LOW);
   Wire.begin(MAKEPYTHON_ESP32_SDA, MAKEPYTHON_ESP32_SCL);
@@ -100,21 +78,6 @@ void setup()
     Serial.print(devStatus);
     Serial.println(F(")"));
   }
-
-#ifdef WIFI_CONNECT
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);
-  connectToWifi();
-
-  if (client.connect(host, 80)) 
-  {
-    Serial.println("Success");
-    client.print(String("GET /") + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n" +
-                 "\r\n");
-  }
-#endif
 }
 
 /*
@@ -128,26 +91,9 @@ Ideas
 - Reconnect to wifi if wifi fails
 */
 
-unsigned long lastWifiConnectionTry = 0;
-unsigned long intervalBetweenWifiRetries = 3000;
-#ifdef WIFI_CONNECT
-void reconnectToWifi() {
-  unsigned long currentMillis = millis();
-  // if WiFi is down, try reconnecting
-  // TODO: Need to wait for connection by polling status. Timeout after some time perhaps and
-  // retry instead.
-  if ((WiFi.status() != WL_CONNECTED) && (currentMillis - lastWifiConnectionTry >= intervalBetweenWifiRetries)) {
-    Serial.print(millis());
-    Serial.println("Reconnecting to WiFi...");
-    WiFi.disconnect();
-    WiFi.reconnect();
-    lastWifiConnectionTry = currentMillis;
-  }
-}
-#endif
-
 void loop()
 {
+  checkWifi();
 
   if (!dmpReady)
     return;
@@ -160,6 +106,7 @@ void loop()
       fifoCount = mpu.getFIFOCount();
     }
   }
+  //delay(100);
 
   mpuInterrupt = false;
   mpuIntStatus = mpu.getIntStatus();
@@ -184,42 +131,16 @@ void loop()
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+/*
     Serial.print("y");
     Serial.print(ypr[0] * 180 / M_PI);
-    Serial.print("yp");
+    Serial.print(", yp");
     Serial.print(ypr[1] * 180 / M_PI);
-    Serial.print("pr");
+    Serial.print(", pr");
     Serial.print(ypr[2] * 180 / M_PI);
     Serial.print("r");
-
     Serial.println("#");
-#ifdef WIFI_CONNECT
-    if (client.connected())
-    {
-      client.print("y");
-      client.print(ypr[0] * 180 / M_PI);
-      client.print("yp");
-      client.print(ypr[1] * 180 / M_PI);
-      client.print("pr");
-      client.print(ypr[2] * 180 / M_PI);
-      client.println("r#");
-    } else {
-      if(!client.connect(host, 80)){
-        // try reconnecting?
-        // If that fails, check wifi
-        // Reconnect to wifi
-        reconnectToWifi();
-      }
-    }
-
-    // if there are incoming bytes available
-    // from the server, read them and print them:
-    /*
-    while (client.available()) {
-      char c = client.read();
-      Serial.print(c);
-    }
     */
-#endif
+    sendYPR(ypr);
   }
 }
