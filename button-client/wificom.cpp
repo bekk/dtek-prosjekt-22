@@ -1,6 +1,5 @@
 #include "wificom.h"
-
-#define WIFI_CONNECT
+//#define WIFI_CONNECT
 
 #ifndef WIFI_CONNECT
 void connectToWifi(){}
@@ -74,7 +73,7 @@ void reconnectToWifi() {
   }
 }
 
-void sendYPR(float* ypr) {
+void sendYPR(float* ypr) {  
   if(connected){
     //Send a packet
     udp.beginPacket(udpAddress,udpPort);

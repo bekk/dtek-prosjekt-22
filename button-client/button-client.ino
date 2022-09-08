@@ -2,10 +2,21 @@
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "Wire.h"
 #include "wificom.h"
+#include <Adafruit_NeoPixel.h>
+#include "stdint.h"
+
+#define NUMPIXELS 64
+
 
 #define MAKEPYTHON_ESP32_SDA 4
 #define MAKEPYTHON_ESP32_SCL 5
-#define INTERRUPT_PIN 35
+
+#define PIN_NEOPIXEL 27
+#define PIN_BUTTON 26
+#define PIN_BUTTON_LED 25
+#define PIN_INTERRUPT 35
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 
 MPU6050 mpu;
 
@@ -30,6 +41,8 @@ void dmpDataReady()
   mpuInterrupt = true;
 }
 
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -37,14 +50,20 @@ void setup()
 
   connectToWifi();
   
+  pinMode(PIN_BUTTON, INPUT); // button
+  pinMode(PIN_BUTTON_LED, OUTPUT); // button LED
+  pinMode(PIN_INTERRUPT, INPUT);
   pinMode(21, OUTPUT);
   digitalWrite(21, LOW);
+
+  pixels.begin();
+  pixels.setBrightness(20);
+  
   Wire.begin(MAKEPYTHON_ESP32_SDA, MAKEPYTHON_ESP32_SCL);
   Wire.setClock(400000);
 
   Serial.println(F("Initializing I2C devices..."));
   mpu.initialize();
-  pinMode(INTERRUPT_PIN, INPUT);
 
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
@@ -62,9 +81,9 @@ void setup()
     mpu.setDMPEnabled(true);
 
     Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-    Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
+    Serial.print(digitalPinToInterrupt(PIN_INTERRUPT));
     Serial.println(F(")..."));
-    attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+    attachInterrupt(digitalPinToInterrupt(PIN_INTERRUPT), dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
 
     Serial.println(F("DMP ready! Waiting for first interrupt..."));
@@ -90,11 +109,30 @@ Ideas
 - receive messages to display from server?
 - Reconnect to wifi if wifi fails
 */
-
+short state = 0;
+uint32_t col = 0;
 void loop()
 {
-  checkWifi();
+   // This could be rewritten to not use a delay, which would make it appear brighter
+  state = digitalRead(26);
+  //Serial.print("State ");
+  //Serial.println(state);
+  digitalWrite(25, !state);
 
+  // set color to red
+  /*
+  pixels.fill(0xFF0000);
+  pixels.show();
+  delay(500); // wait half a second
+
+  // turn off
+  pixels.fill(0x000000);
+  pixels.show();
+  delay(500); // wait half a second
+
+  checkWifi();
+  */
+  
   if (!dmpReady)
     return;
 
@@ -130,16 +168,25 @@ void loop()
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-/*
-    Serial.print("y");
-    Serial.print(ypr[0] * 180 / M_PI);
-    Serial.print(", yp");
-    Serial.print(ypr[1] * 180 / M_PI);
-    Serial.print(", pr");
-    Serial.print(ypr[2] * 180 / M_PI);
-    Serial.print("r");
-    Serial.println("#");
-    */
     sendYPR(ypr);
+    //Send a packet
+
+    uint8_t r = ypr[0] * 255 / M_PI;
+    uint8_t g = ypr[1] * 255 / M_PI;
+    uint8_t b = ypr[2] * 255 / M_PI;
+    uint32_t rgb = pixels.Color(r,g,b);
+
+    pixels.fill(rgb);
+    pixels.show();
+
+    //if(col > 32000) col = 0;
+
+    Serial.print("r:");
+    Serial.print(r);
+    Serial.print(" g:");
+    Serial.print(g);
+    Serial.print(" b:");
+    Serial.println(b);   
+    Serial.println(rgb);   
   }
 }
