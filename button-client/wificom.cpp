@@ -11,6 +11,7 @@
   // WiFi network name and password:
   const char * networkName = "Monopoly";
   const char * networkPswd = "jupiter8prophet5";
+  const uint64_t chipid = ESP.getEfuseMac();
   
   //IP address to send UDP data to:
   // either use the ip address of the server or
@@ -76,6 +77,8 @@
       //Send a packet
       udp.beginPacket(udpAddress,udpPort);
       udp.print("ypr;");
+      udp.print(chipid);
+      udp.print(";");
       udp.print(ypr[0] * 180 / M_PI);
       udp.print(";");
       udp.print(ypr[1] * 180 / M_PI);
