@@ -148,6 +148,19 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
   });
 }
 
+const parseMsg = (msg: string) => {
+    const msgParts = msg.split(';');
+    const chipId = msgParts[0];
+    switch(msgParts[1]){
+        case 'ypr':
+            console.log(`y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]} - from ${chipId}`);
+            return
+        default:
+            console.log(`Unknown msg: ${msg}`)
+            return;
+    }
+}
+
 function createDatagramServer({
   port,
   db,
