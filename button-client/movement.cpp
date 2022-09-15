@@ -4,6 +4,7 @@
 #include "Wire.h"
 #include "wificom.h"
 #include "pins.h"
+#include <Adafruit_NeoPixel.h>
 
 #define MAKEPYTHON_ESP32_SDA 4
 #define MAKEPYTHON_ESP32_SCL 5
@@ -25,6 +26,8 @@ namespace movement {
   VectorFloat gravity;
   float euler[3];
   float ypr[3];
+  float previousYpr[3];
+  const float minDeltaToSend = M_PI / 90;
 
   volatile bool mpuInterrupt = false;
   void dmpDataReady()
@@ -42,6 +45,12 @@ namespace movement {
   
     Serial.println(F("Testing device connections..."));
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+
+    Serial.println("Setting initial ypr");
+    Serial.print("Min delta between sends: ");Serial.println(minDeltaToSend);
+    previousYpr[0] = 200;
+    previousYpr[1] = 200;
+    previousYpr[3] = 200;
   
     Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
@@ -70,9 +79,10 @@ namespace movement {
       Serial.print(devStatus);
       Serial.println(F(")"));
     }
+
   }
 
-  void poll() {
+  void poll(Adafruit_NeoPixel* pixels) {
     if (!dmpReady) return;
   
     while (!mpuInterrupt && fifoCount < packetSize) {
@@ -123,15 +133,41 @@ namespace movement {
       Serial.print("\t");
       Serial.println(aaWorld.z);
 */      
-      //Send a packet
-      sendYPR(ypr); 
 
+      float deltaY = abs(ypr[0] - previousYpr[0]);
+      float deltaP = abs(ypr[1] - previousYpr[1]);
+      float deltaR = abs(ypr[2] - previousYpr[2]);
+
+      if(
+        deltaY > minDeltaToSend ||
+        deltaP > minDeltaToSend ||
+        deltaR > minDeltaToSend
+      ) {
+        Serial.print("DY: ");Serial.println(deltaY);
+        Serial.print("DP: ");Serial.println(deltaP);
+        Serial.print("DR: ");Serial.println(deltaR);
+        previousYpr[0] = ypr[0];        
+        previousYpr[1] = ypr[1];
+        previousYpr[2] = ypr[2];
+        sendYPR(ypr);         
+      }
+
+/*
       Serial.print("ypr;");
       Serial.print(ypr[0] * 180 / M_PI);
       Serial.print(";");
       Serial.print(ypr[1] * 180 / M_PI);
       Serial.print(";");
       Serial.println(ypr[2] * 180 / M_PI);
+
+      uint8_t r = ypr[0] * 255 / M_PI;
+      uint8_t g = ypr[1] * 255 / M_PI;
+      uint8_t b = ypr[2] * 255 / M_PI;
+      uint32_t rgb = pixels->Color(r,g,b);
+    
+      pixels->fill(rgb);
+      pixels->show();
+*/      
     }    
   }
 }

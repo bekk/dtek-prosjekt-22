@@ -154,10 +154,17 @@ const parseMsg = (msg: string) => {
     const eventName = msgParts[1];
     switch(eventName){
         case 'ypr':
-            console.log(`y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]} - from ${chipId}`);
+            console.log(`${chipId}: y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]}`);
+            return
+        case 'btn':
+            if(msgParts[2] === '0'){
+                console.log(`${chipId}: Button released`);
+            } else {
+                console.log(`${chipId}: Button pressed`);
+            }
             return
         default:
-            console.log(`Unknown msg: ${msg}`)
+            console.log(`Unknown msg type ${eventName}: ${msg}`)
             return;
     }
 }

@@ -11,11 +11,11 @@
 #include "stdint.h"
 #include "pins.h"
 
-#define NUMPIXELS 64
+#define NUMPIXELS 1
 
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-Button button(PIN_BUTTON); // Connect your button between pin 2 and GND
+Button button(PIN_BUTTON);
 
 void setup()
 {
@@ -56,22 +56,14 @@ void loop()
   
   if (button.toggled()) {
     if (button.read() == Button::PRESSED) {
-      //Serial.println("Button has been pressed");
+      sendButton(true);
+      Serial.println("Button has been pressed");
     } else {
-      //Serial.println("Button has been released");
+      sendButton(false);
+      Serial.println("Button has been released");
     }      
   }
-      
 
-  movement::poll();
-/*
-  uint8_t r = ypr[0] * 255 / M_PI;
-  uint8_t g = ypr[1] * 255 / M_PI;
-  uint8_t b = ypr[2] * 255 / M_PI;
-  uint32_t rgb = pixels.Color(r,g,b);
-
-  pixels.fill(rgb);
-  pixels.show();
-*/
+  movement::poll(&pixels);
   
 }
