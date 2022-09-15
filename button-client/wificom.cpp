@@ -1,9 +1,11 @@
 #include "wificom.h"
+#include "Arduino.h"
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
   void sendYPR(float* ypr){}
   void checkWifi(){}
+  void sendButton(boolean pressed) {}
 #else  
   #include <WiFi.h>
   #include <WiFiUdp.h>
@@ -76,9 +78,9 @@
     if(connected){
       //Send a packet
       udp.beginPacket(udpAddress,udpPort);
-      udp.print("ypr;");
       udp.print(chipid);
-      udp.print(";");
+      udp.print(";");      
+      udp.print("ypr;");
       udp.print(ypr[0] * 180 / M_PI);
       udp.print(";");
       udp.print(ypr[1] * 180 / M_PI);
@@ -87,6 +89,19 @@
       udp.endPacket();
     }
   }
+
+  void sendButton(boolean pressed) {  
+    if(connected){
+      //Send a packet
+      udp.beginPacket(udpAddress,udpPort);
+      udp.print(chipid);
+      udp.print(";");      
+      udp.print("btn;");
+      udp.print(pressed ? 1 : 0);
+      udp.endPacket();
+    }
+  }
+
   
   void checkWifi() {
     if(connected) return;

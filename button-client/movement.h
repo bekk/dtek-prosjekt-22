@@ -3,7 +3,7 @@
 
 namespace movement {
   void init();
-  void poll();
+  void poll(Adafruit_NeoPixel* pixels);
 }
 
 #endif
