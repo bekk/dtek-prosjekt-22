@@ -25,7 +25,6 @@ namespace movement {
   VectorFloat gravity;
   float euler[3];
   float ypr[3];
-  //uint8_t teapotPacket[14] = {'$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n'};
 
   volatile bool mpuInterrupt = false;
   void dmpDataReady()
@@ -51,8 +50,8 @@ namespace movement {
     mpu.setYGyroOffset(76);
     mpu.setZGyroOffset(-85);
     mpu.setZAccelOffset(1688);
-    if (devStatus == 0)
-    {
+    
+    if (devStatus == 0) {
       Serial.println(F("Enabling DMP..."));
       mpu.setDMPEnabled(true);
   
@@ -66,9 +65,7 @@ namespace movement {
       dmpReady = true;
   
       packetSize = mpu.dmpGetFIFOPacketSize();
-    }
-    else
-    {
+    } else  {
       Serial.print(F("DMP Initialization failed (code "));
       Serial.print(devStatus);
       Serial.println(F(")"));
@@ -76,10 +73,8 @@ namespace movement {
   }
 
   void poll() {
-    if (!dmpReady)
-      return;
+    if (!dmpReady) return;
   
-    // TODO: store data in interrupt routine?
     while (!mpuInterrupt && fifoCount < packetSize) {
       if (mpuInterrupt && fifoCount < packetSize) {
         fifoCount = mpu.getFIFOCount();
@@ -107,7 +102,27 @@ namespace movement {
       mpu.dmpGetQuaternion(&q, fifoBuffer);
       mpu.dmpGetGravity(&gravity, &q);
       mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+
+      // display initial world-frame acceleration, adjusted to remove gravity
+      // and rotated based on known orientation from quaternion     
+      mpu.dmpGetAccel(&aa, fifoBuffer);
+      mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
+      mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
+/*
+      Serial.print("aworld\t");
+      Serial.print(aaReal.x);
+      Serial.print("\t");
+      Serial.print(aaReal.y);
+      Serial.print("\t");
+      Serial.println(aaReal.z);
       
+      Serial.print("aworld\t");
+      Serial.print(aaWorld.x);
+      Serial.print("\t");
+      Serial.print(aaWorld.y);
+      Serial.print("\t");
+      Serial.println(aaWorld.z);
+*/      
       //Send a packet
       sendYPR(ypr); 
 
