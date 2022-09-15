@@ -82,7 +82,15 @@ namespace movement {
 
   }
 
-  void poll(Adafruit_NeoPixel* pixels) {
+  void enable() {
+    mpu.setDMPEnabled(false);
+  }
+
+  void disable() {
+    mpu.setDMPEnabled(true);
+  }
+
+  void poll() {
     if (!dmpReady) return;
   
     while (!mpuInterrupt && fifoCount < packetSize) {
@@ -143,9 +151,9 @@ namespace movement {
         deltaP > minDeltaToSend ||
         deltaR > minDeltaToSend
       ) {
-        Serial.print("DY: ");Serial.println(deltaY);
-        Serial.print("DP: ");Serial.println(deltaP);
-        Serial.print("DR: ");Serial.println(deltaR);
+        //Serial.print("DY: ");Serial.println(deltaY);
+        //Serial.print("DP: ");Serial.println(deltaP);
+        //Serial.print("DR: ");Serial.println(deltaR);
         previousYpr[0] = ypr[0];        
         previousYpr[1] = ypr[1];
         previousYpr[2] = ypr[2];

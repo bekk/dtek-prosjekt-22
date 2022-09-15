@@ -3,7 +3,9 @@
 
 namespace movement {
   void init();
-  void poll(Adafruit_NeoPixel* pixels);
+  void poll();
+  void enable();
+  void disable();  
 }
 
 #endif
