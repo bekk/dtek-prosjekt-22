@@ -4,9 +4,10 @@ const server = udp.createSocket('udp4');
 
 const parseMsg = (msg: string) => {
     const msgParts = msg.split(';');
-    switch(msgParts[0]){
+    const chipId = msgParts[0];
+    switch(msgParts[1]){
         case 'ypr':
-            console.log(`y: ${msgParts[1]}, p: ${msgParts[2]}, r: ${msgParts[3]}`);
+            console.log(`y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]} - from ${chipId}`);
             return
         default:
             console.log(`Unknown msg: ${msg}`)
