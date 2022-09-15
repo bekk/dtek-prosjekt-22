@@ -1,20 +1,18 @@
 /*
  * Required external libs:
  * - Adafruit Neopixel
+ * - Adafruit Neo Matrix
+ * - Adafruit GFX
  * - Button
  */
 
-#include <Adafruit_NeoPixel.h>
 #include <Button.h>
 #include "wificom.h"
 #include "movement.h"
+#include "matrix.h"
 #include "stdint.h"
 #include "pins.h"
 
-#define NUMPIXELS 1
-
-
-Adafruit_NeoPixel pixels(NUMPIXELS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Button button(PIN_BUTTON);
 
 void setup()
@@ -30,11 +28,9 @@ void setup()
   pinMode(21, OUTPUT);
   digitalWrite(21, LOW);
 
-  pixels.begin();
-  pixels.setBrightness(20);
-
   button.begin();
-  
+
+  matrix::init();
   movement::init();
 }
 
@@ -64,6 +60,9 @@ void loop()
     }      
   }
 
-  movement::poll(&pixels);
-  
+  movement::poll();
+  movement::disable();
+  matrix::update();
+  matrix::redraw();
+  movement::enable();
 }
