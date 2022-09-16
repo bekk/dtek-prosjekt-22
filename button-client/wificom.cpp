@@ -1,9 +1,11 @@
 #include "wificom.h"
+#include "Arduino.h"
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
   void sendYPR(float* ypr){}
   void checkWifi(){}
+  void sendButton(boolean pressed) {}
 #else  
   #include <WiFi.h>
   #include <WiFiUdp.h>
@@ -11,6 +13,7 @@
   // WiFi network name and password:
   const char * networkName = "Monopoly";
   const char * networkPswd = "jupiter8prophet5";
+  const uint64_t chipid = ESP.getEfuseMac();
   
   //IP address to send UDP data to:
   // either use the ip address of the server or
@@ -75,6 +78,8 @@
     if(connected){
       //Send a packet
       udp.beginPacket(udpAddress,udpPort);
+      udp.print(chipid);
+      udp.print(";");      
       udp.print("ypr;");
       udp.print(ypr[0] * 180 / M_PI);
       udp.print(";");
@@ -84,6 +89,19 @@
       udp.endPacket();
     }
   }
+
+  void sendButton(boolean pressed) {  
+    if(connected){
+      //Send a packet
+      udp.beginPacket(udpAddress,udpPort);
+      udp.print(chipid);
+      udp.print(";");      
+      udp.print("btn;");
+      udp.print(pressed ? 1 : 0);
+      udp.endPacket();
+    }
+  }
+
   
   void checkWifi() {
     if(connected) return;

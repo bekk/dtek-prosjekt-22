@@ -4,12 +4,21 @@ const server = udp.createSocket('udp4');
 
 const parseMsg = (msg: string) => {
     const msgParts = msg.split(';');
-    switch(msgParts[0]){
+    const chipId = msgParts[0];
+    const eventName = msgParts[1];
+    switch(eventName){
         case 'ypr':
-            console.log(`y: ${msgParts[1]}, p: ${msgParts[2]}, r: ${msgParts[3]}`);
+            console.log(`${chipId}: y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]}`);
+            return
+        case 'btn':
+            if(msgParts[2] === '0'){
+                console.log(`${chipId}: Button released`);
+            } else {
+                console.log(`${chipId}: Button pressed`);
+            }
             return
         default:
-            console.log(`Unknown msg: ${msg}`)
+            console.log(`Unknown msg type ${eventName}: ${msg}`)
             return;
     }
 }

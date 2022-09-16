@@ -4,6 +4,8 @@
 namespace movement {
   void init();
   void poll();
+  void enable();
+  void disable();  
 }
 
 #endif
