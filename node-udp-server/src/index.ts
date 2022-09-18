@@ -3,6 +3,7 @@ import http from "node:http";
 import EventEmitter from "node:events";
 import { WebSocketServer } from "ws";
 import sqlite from "sqlite3";
+import { AddressInfo } from "node:net";
 
 interface Database {
   append: (id: string, data: string) => Promise<void>;
@@ -19,13 +20,39 @@ interface DatabaseChunk {
 
 type ListenerFn = (newChunk: DatabaseChunk) => void;
 
-function createDatabase(): Database {
+async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
   const emitter = new EventEmitter();
-  let state: Array<DatabaseChunk> = [];
+  const db = new sqlite.Database(dbPath);
 
-  const db = new sqlite.Database(":memory:");
+  console.log(`level=info msg="Using database ${dbPath}."`);
 
-  db.run("CREATE TABLE chunks (id TEXT, data TEXT, ts INTEGER)");
+  await new Promise<void>((resolve, reject) => {
+    db.get(
+      "SELECT name FROM sqlite_schema WHERE name = 'chunks'",
+      (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          if (row === undefined) {
+            db.run(
+              "CREATE TABLE chunks (id TEXT, data TEXT, ts INTEGER)",
+              (err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  console.log(`level=info msg="Using new table 'chunks'."`);
+                  resolve();
+                }
+              }
+            );
+          } else {
+            console.log(`level=info msg="Using table 'chunks'."`);
+            resolve();
+          }
+        }
+      }
+    );
+  });
 
   return {
     async append(id: string, data: string) {
@@ -41,9 +68,8 @@ function createDatabase(): Database {
             if (err) {
               reject(err);
             } else {
-              resolve();
-
               emitter.emit("chunk", chunk);
+              resolve();
             }
           }
         );
@@ -112,9 +138,12 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
     }
   });
 
-  server.listen(port, () =>
-    console.log(`Super secret HTTP/WebSocket server listening on port ${port}`)
-  );
+  server.listen(port, () => {
+    const address = server.address() as AddressInfo;
+    console.log(
+      `level=info msg="HTTP/WebSocket server listening on port ${address.address}:${address.port}"`
+    );
+  });
 }
 
 function createDatagramServer({
@@ -156,7 +185,7 @@ function createDatagramServer({
     const serverAddress = server.address().address;
     const serverPort = server.address().port;
     console.log(
-      `Super secret UDP server is listening on ${serverAddress} port ${serverPort}`
+      `level=info msg="UDP server is listening on ${serverAddress}:${serverPort}."`
     );
 
     if (demo) {
@@ -167,7 +196,7 @@ function createDatagramServer({
         1000
       );
 
-      console.log(`Starting in demo mode.`);
+      console.log(`level=info msg="Starting in demo mode."`);
     }
   });
 
@@ -192,18 +221,31 @@ function createDatagramServer({
   });
 
   server.on("error", (error) => {
-    console.log("Error: " + error);
+    console.error(`level=error msg="${error}"`);
     server.close();
   });
 
   server.bind(port);
 }
 
-console.log("STARTING");
+console.log('level=info msg="Starting super secret D+T server."');
 
-const isDemo = process.argv[2] === "--demo";
+const isDemo = process.argv.includes("--demo");
 
-const db = createDatabase();
+const dbPath = (() => {
+  const dbPos = process.argv.indexOf("--db");
+  if (dbPos === -1) {
+    return ":memory:";
+  }
+  const value = process.argv[dbPos + 1];
+  if (value === undefined) {
+    console.error(`level=error msg="--db must be succeeded by a value."`);
+    process.exit(1);
+  }
+  return value;
+})();
 
-createDatagramServer({ port: 8000, db, demo: isDemo });
-createWebServer({ port: 8001, db });
+createDatabase(dbPath).then((db) => {
+  createDatagramServer({ port: 8000, db, demo: isDemo });
+  createWebServer({ port: 8001, db });
+});
