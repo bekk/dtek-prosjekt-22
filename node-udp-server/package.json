@@ -18,6 +18,7 @@
     "dev": "tsc -W"
   },
   "dependencies": {
+    "sqlite3": "^5.1.1",
     "ws": "^8.8.1"
   }
 }

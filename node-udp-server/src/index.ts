@@ -2,10 +2,11 @@ import udp from "node:dgram";
 import http from "node:http";
 import EventEmitter from "node:events";
 import { WebSocketServer } from "ws";
+import sqlite from "sqlite3";
 
 interface Database {
-  append: (id: string, data: string) => void;
-  retrieve: () => Array<DatabaseChunk>;
+  append: (id: string, data: string) => Promise<void>;
+  retrieve: () => Promise<Array<DatabaseChunk>>;
   addAppendListener: (fn: ListenerFn) => void;
   removeAppendListener: (fn: ListenerFn) => void;
 }
@@ -21,20 +22,52 @@ type ListenerFn = (newChunk: DatabaseChunk) => void;
 function createDatabase(): Database {
   const emitter = new EventEmitter();
   let state: Array<DatabaseChunk> = [];
+
+  const db = new sqlite.Database(":memory:");
+
+  db.run("CREATE TABLE chunks (id TEXT, data TEXT, ts INTEGER)");
+
   return {
-    append(id: string, data: string) {
+    async append(id: string, data: string) {
       const ts = new Date();
 
       const chunk = { id, data, ts };
 
-      // Store chunk
-      state.push(chunk);
+      return new Promise((resolve, reject) => {
+        db.run(
+          "INSERT INTO chunks (id, data, ts) VALUES (?, ?, ?)",
+          [id, data, ts],
+          (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
 
-      // Publish chunk event
-      emitter.emit("chunk", chunk);
+              emitter.emit("chunk", chunk);
+            }
+          }
+        );
+      });
     },
-    retrieve() {
-      return state.slice();
+    async retrieve() {
+      return new Promise((resolve, reject) => {
+        db.all(
+          "SELECT id, data, ts FROM chunks",
+          (err, rows: Array<{ id: string; data: string; ts: number }>) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(
+                rows.map((row) => ({
+                  id: row.id,
+                  data: row.data,
+                  ts: new Date(row.ts),
+                }))
+              );
+            }
+          }
+        );
+      });
     },
     addAppendListener(fn: ListenerFn) {
       emitter.on("chunk", fn);
@@ -62,7 +95,7 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
         case "/metrics":
           const metricsData = {
             db: {
-              chunkNum: db.retrieve().length,
+              chunkNum: (await db.retrieve()).length,
             },
             ws: {
               connectionNum: wsServer.clients.size,
@@ -71,7 +104,7 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
           res.write(JSON.stringify(metricsData));
           break;
         default:
-          const data = { chunks: db.retrieve() };
+          const data = { chunks: await db.retrieve() };
           res.write(JSON.stringify(data));
       }
 
