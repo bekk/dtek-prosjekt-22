@@ -1,20 +1,25 @@
 import udp from "node:dgram";
 import http from "node:http";
 import EventEmitter from "node:events";
+import { AddressInfo } from "node:net";
 import { WebSocketServer } from "ws";
 import sqlite from "sqlite3";
-import { AddressInfo } from "node:net";
 
 interface Database {
-  append: (id: string, data: string) => Promise<void>;
+  append: (id: string, fields: Array<ChunkField>) => Promise<void>;
   retrieve: () => Promise<Array<DatabaseChunk>>;
   addAppendListener: (fn: ListenerFn) => void;
   removeAppendListener: (fn: ListenerFn) => void;
 }
 
+interface ChunkField {
+  name: string;
+  data: Array<string>;
+}
+
 interface DatabaseChunk {
   id: string;
-  data: string;
+  fields: Array<ChunkField>;
   ts: Date;
 }
 
@@ -35,7 +40,7 @@ async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
         } else {
           if (row === undefined) {
             db.run(
-              "CREATE TABLE chunks (id TEXT, data TEXT, ts INTEGER)",
+              "CREATE TABLE chunks (id TEXT, fields TEXT, ts INTEGER)",
               (err) => {
                 if (err) {
                   reject(err);
@@ -55,20 +60,17 @@ async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
   });
 
   return {
-    async append(id: string, data: string) {
+    async append(id: string, fields: Array<ChunkField>) {
       const ts = new Date();
-
-      const chunk = { id, data, ts };
-
       return new Promise((resolve, reject) => {
         db.run(
-          "INSERT INTO chunks (id, data, ts) VALUES (?, ?, ?)",
-          [id, data, ts],
+          "INSERT INTO chunks (id, fields, ts) VALUES (?, ?, ?)",
+          [id, JSON.stringify(fields), ts],
           (err) => {
             if (err) {
               reject(err);
             } else {
-              emitter.emit("chunk", chunk);
+              emitter.emit("chunk", { id, fields, ts });
               resolve();
             }
           }
@@ -78,15 +80,15 @@ async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
     async retrieve() {
       return new Promise((resolve, reject) => {
         db.all(
-          "SELECT id, data, ts FROM chunks",
-          (err, rows: Array<{ id: string; data: string; ts: number }>) => {
+          "SELECT id, fields, ts FROM chunks",
+          (err, rows: Array<{ id: string; fields: string; ts: number }>) => {
             if (err) {
               reject(err);
             } else {
               resolve(
                 rows.map((row) => ({
                   id: row.id,
-                  data: row.data,
+                  fields: JSON.parse(row.fields),
                   ts: new Date(row.ts),
                 }))
               );
@@ -167,20 +169,6 @@ function createDatagramServer({
 
     */
 
-  // const parseMsg = (msg: string) => {
-  //     const msgParts = msg.split(';');
-  //     switch (msgParts[0]) {
-  //         case 'ypr':
-  //             console.log(`y: ${msgParts[1]}, p: ${msgParts[2]}, r: ${msgParts[3]}`);
-  //             return
-  //         default:
-  //             console.log(`Unknown msg: ${msg}`)
-  //             return;
-  //     }
-  // }
-
-  const MSG_FORMAT_REGEX = new RegExp(/^[a-zA-Z0-9]+;.*$/);
-
   server.on("listening", () => {
     const serverAddress = server.address().address;
     const serverPort = server.address().port;
@@ -205,21 +193,23 @@ function createDatagramServer({
   server.on("message", (msg, info) => {
     const msgString = msg.toString();
 
-    if (!MSG_FORMAT_REGEX.test(msgString)) {
-      console.info(
-        `level=info msg="Invalid message received" received="${msgString}" address=${info.address}`
-      );
+    const parts = msgString.split(";");
+
+    if (parts.length < 2) {
+      console.log(`level=debug msg="Too few parts." data="${msgString}"`);
       return;
     }
 
-    const sepIndex = msgString.indexOf(";");
-    const id = msgString.slice(0, sepIndex);
-    const data = msgString.slice(sepIndex + 1);
+    const id = parts[0];
+
+    const fields = [{ name: parts[1], data: parts.slice(2) }];
 
     console.debug(
-      `level=debug msg="Message received" id=${id} data="${data}" address=${info.address}`
+      `level=debug msg="Message received." id=${id} fields="${JSON.stringify(
+        fields
+      )}" address=${info.address}`
     );
-    db.append(id, data);
+    db.append(id, fields);
   });
 
   server.on("error", (error) => {
