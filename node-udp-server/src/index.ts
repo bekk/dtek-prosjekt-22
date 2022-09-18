@@ -191,10 +191,12 @@ function createDatagramServer({
     if (demo) {
       const client = udp.createSocket("udp4");
 
-      setInterval(
-        () => client.send("demo;ypr;1;2;3", serverPort, serverAddress),
-        1000
-      );
+      setInterval(() => {
+        const y = Math.random() * 2 - 1;
+        const p = Math.random() * 2 - 1;
+        const r = Math.random() * 2 - 1;
+        client.send(`demo;ypr;${y};${p};${r}`, serverPort, serverAddress);
+      }, 1000);
 
       console.log(`level=info msg="Starting in demo mode."`);
     }
