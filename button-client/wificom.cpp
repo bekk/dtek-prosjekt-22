@@ -1,5 +1,8 @@
 #include "wificom.h"
 #include "Arduino.h"
+#include "matrix.h"
+
+#define CMD_PING 0
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
@@ -117,6 +120,13 @@
       if (len > 0) {
         incomingPacket[len] = '\0';
       }
+
+      // TODO: move elsewhere
+      if(incomingPacket[0] == CMD_PING){
+        matrix::allOn(3, 300);
+        Serial.println("all on");
+      }
+
       Serial.printf("UDP packet contents: %s\n", incomingPacket);
     }  
   }
