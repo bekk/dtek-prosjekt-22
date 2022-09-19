@@ -148,23 +148,20 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
   });
 }
 
-const parseMsg = (msg: string) => {
-    const msgParts = msg.split(';');
-    const chipId = msgParts[0];
-    const eventName = msgParts[1];
+const handleMessage = (chipId: string, eventName: string, data: string[]) => {
     switch(eventName){
         case 'ypr':
-            console.log(`${chipId}: y: ${msgParts[2]}, p: ${msgParts[3]}, r: ${msgParts[4]}`);
+            console.log(`${chipId}: y: ${data[0]}, p: ${data[1]}, r: ${data[2]}`);
             return
         case 'btn':
-            if(msgParts[2] === '0'){
+            if(data[0] === '0'){
                 console.log(`${chipId}: Button released`);
             } else {
                 console.log(`${chipId}: Button pressed`);
             }
             return
         default:
-            console.log(`Unknown msg type ${eventName}: ${msg}`)
+            console.log(`Unknown msg type ${eventName}: ${data}`)
             return;
     }
 }
@@ -179,7 +176,7 @@ function createDatagramServer({
   demo?: boolean;
 }) {
 
-  const clients = [];
+  const clients: string[] = [];
 
   const server = udp.createSocket("udp4");
 
@@ -214,6 +211,10 @@ function createDatagramServer({
   });
 
   server.on("message", (msg, info) => {
+    const clientId = `${info.address}:${info.port}`
+    if(!clients.includes(clientId)){
+      clients.push(clientId)
+    }
     const msgString = msg.toString();
 
     const parts = msgString.split(";");
@@ -224,8 +225,19 @@ function createDatagramServer({
     }
 
     const id = parts[0];
+    const name = parts[1];
+    const data = parts.slice(2);
+    const fields = [{ name, data }];
 
-    const fields = [{ name: parts[1], data: parts.slice(2) }];
+    handleMessage(id, name, data);
+
+    // Test of returning data to all clients
+    if(name === 'btn' && data[0] === '1') {
+      clients.forEach((clientId) => {
+        const [address, port] = clientId.split(':')
+        server.send('ping', Number.parseInt(port), address)
+      })
+    }
 
     console.debug(
       `level=debug msg="Message received." id=${id} fields="${JSON.stringify(

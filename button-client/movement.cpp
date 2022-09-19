@@ -157,7 +157,7 @@ namespace movement {
         previousYpr[0] = ypr[0];        
         previousYpr[1] = ypr[1];
         previousYpr[2] = ypr[2];
-        sendYPR(ypr);         
+        wificom::sendYPR(ypr);         
       }
 
 /*
