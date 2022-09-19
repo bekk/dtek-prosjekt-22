@@ -5,9 +5,10 @@ namespace matrix {
   void init();
   void redraw();
 
+  void reset();
   void update();
   void writeText(String msg, int colorIndex);
-  
+  void allOn(int colorIndex, int time);
 
 }
 

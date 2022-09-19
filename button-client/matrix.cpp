@@ -56,6 +56,9 @@ namespace matrix {
   int msgSize;
   int scrollingMax;
   boolean isScrolling;
+  boolean isOn;
+  unsigned long timer;
+  unsigned long timerStart;
 
   // frame stuff
   unsigned long lastUpdate = 0;
@@ -93,15 +96,27 @@ namespace matrix {
     matrix.show(); 
   }
 
-  void redraw() {
-    if(isScrolling && millis() - lastUpdate > frameDelay) {
-      lastUpdate = millis();
-      nextFrame(); 
-    }
+  void allOff() {
+    matrix.fillScreen(0);
+  }
+
+  void allOn(int colorIndex, int time){
+    reset();
+    timer = timer;
+    timerStart = millis();
+    isOn = true;
+    matrix.fillScreen(colors[colorIndex]);
+    matrix.show();
+  }
+
+  void reset() {
+    isScrolling = false;
+    isOn = false;
+    matrix.fillScreen(0);
   }
     
   void writeText(String msg, int colorIndex) {
-
+    reset();
     currMsg = msg;
     msgSize = msg.length() * pixelPerChar + 2 * pixelPerChar;
     scrollingMax = msgSize + matrix.width(); 
@@ -112,5 +127,17 @@ namespace matrix {
 
     // Reset Cursor Position and Start Text String at New Position on the Far Right;
     currentCursor = matrix.width();   
+  }
+
+  void redraw() {
+    if(millis() - lastUpdate < frameDelay) return;
+
+    if(isScrolling) {
+      nextFrame();
+    } else if(isOn && millis() - timerStart > timer) {
+      allOff();
+    }
+
+    lastUpdate = millis();
   }
 }

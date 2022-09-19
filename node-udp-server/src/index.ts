@@ -4,6 +4,7 @@ import EventEmitter from "node:events";
 import { AddressInfo } from "node:net";
 import { WebSocketServer } from "ws";
 import sqlite from "sqlite3";
+import buttonCommands from "./buttonCommands";
 
 interface Database {
   append: (id: string, fields: Array<ChunkField>) => Promise<void>;
@@ -233,9 +234,10 @@ function createDatagramServer({
 
     // Test of returning data to all clients
     if(name === 'btn' && data[0] === '1') {
+    //if(name === 'ypr') {
       clients.forEach((clientId) => {
         const [address, port] = clientId.split(':')
-        server.send('ping', Number.parseInt(port), address)
+        server.send(buttonCommands.PING, Number.parseInt(port), address)
       })
     }
 
