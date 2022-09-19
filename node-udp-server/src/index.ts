@@ -178,18 +178,20 @@ function createDatagramServer({
   db: Database;
   demo?: boolean;
 }) {
+
+  const clients = [];
+
   const server = udp.createSocket("udp4");
 
   /*
     Message format
 
-    <id>;<data>
+    <id>;<messageName>;<data>
 
     id   = /[A-Za-z0-9]+/
+    messageName   = /[A-Za-z0-9]+/
     data = any data
-
     */
-
   server.on("listening", () => {
     const serverAddress = server.address().address;
     const serverPort = server.address().port;
