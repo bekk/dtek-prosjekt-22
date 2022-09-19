@@ -65,4 +65,5 @@ void loop()
   matrix::update();
   matrix::redraw();
   movement::enable();
+  receive();
 }
