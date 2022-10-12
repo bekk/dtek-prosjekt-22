@@ -128,6 +128,8 @@
         incomingPacket[len] = '\0';
       }
 
+      Serial.printf("UDP packet contents: %s\n", incomingPacket);
+
       // TODO: move elsewhere
       if(incomingPacket[0] == CMD_PING){
         matrix::allOn(3, 300);
@@ -137,10 +139,16 @@
           incomingPacket[i-1] = incomingPacket[i];
         }
         matrix::writeTextIfReady(incomingPacket, 0);
+      } else if(incomingPacket[0] == CMD_BUTTON_LED) {
+        if(incomingPacket[0] == 1) {
+          digitalWrite(PIN_BUTTON_LED, LOW);
+          Serial.println("Button LED on");
+        } else {
+          digitalWrite(PIN_BUTTON_LED, HI);
+          Serial.println("Button LED off");
+        }
       }
-
-      Serial.printf("UDP packet contents: %s\n", incomingPacket);
-    }  
+    }
   }
 
 #endif
