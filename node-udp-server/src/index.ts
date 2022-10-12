@@ -118,7 +118,7 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
       try {
         const event = JSON.parse(data);
         if (event.cmd) {
-          eventBus.emit("command", event.cmd, event.payload || {});
+          eventBus.emit("command", event.cmd, event.payload || "");
         }
       } catch {
         console.log(`level=info msg="Could not parse WebSocket message '${data}'."`)
@@ -222,6 +222,7 @@ function createDatagramServer({
 
     eventBus.addListener("command", (command, payload) => {
       const commandBytes = buttonCommands.stringToCommand(command);
+      const payloadBytes = Uint8Array.from(String(payload).split("").map(char => char.charCodeAt(0))) 
       if (commandBytes === null) {
         console.log(`level=info msg="Command '${command}' not supported."`);
         return;
@@ -230,7 +231,7 @@ function createDatagramServer({
 
       clients.forEach((clientId) => {
         const [address, port] = clientId.split(':')
-        server.send(commandBytes, Number.parseInt(port), address)
+        server.send(new Uint8Array([...commandBytes, ...payloadBytes]), Number.parseInt(port), address)
       });
     })
 
