@@ -1,26 +1,37 @@
 #include "wificom.h"
+#include "Arduino.h"
+#include "matrix.h"
+
+#define CMD_PING 0
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
   void sendYPR(float* ypr){}
   void checkWifi(){}
+  void sendButton(boolean pressed) {}
+  void receive() {}
 #else  
   #include <WiFi.h>
   #include <WiFiUdp.h>
+
+  const uint64_t chipid = ESP.getEfuseMac();
   
   // WiFi network name and password:
-  const char * networkName = "Monopoly";
-  const char * networkPswd = "jupiter8prophet5";
+//  const char * networkName = "Monopoly";
+//  const char * networkPswd = "jupiter8prophet5";
+  const char * networkName = "SoftCity1";
+  const char * networkPswd = "pushwagner";
   
-  //IP address to send UDP data to:
-  // either use the ip address of the server or
+  
+  // IP address to send UDP data to:
+  // Either use the ip address of the server or
   // a network broadcast address
-  const char * udpAddress = "192.168.1.38";
+  const char * udpAddress = "10.0.1.3";
+  //const char * udpAddress = "192.168.1.38";
   const int udpPort = 8000;
-  
-  //Are we currently connected?
+
+  char incomingPacket[256];  
   boolean connected = false;
-  //The udp library class
   WiFiUDP udp;
   
   //wifi event handler
@@ -49,8 +60,10 @@
   
     // delete old config
     WiFi.disconnect(true);
+    
     //register event handler
     WiFi.onEvent(WiFiEvent);
+//    WiFi.setPhyMode(WIFI_PHY_MODE_11N);
   
     //Initiate connection
     WiFi.begin(networkName, networkPswd);
@@ -75,6 +88,8 @@
     if(connected){
       //Send a packet
       udp.beginPacket(udpAddress,udpPort);
+      udp.print(chipid);
+      udp.print(";");      
       udp.print("ypr;");
       udp.print(ypr[0] * 180 / M_PI);
       udp.print(";");
@@ -84,10 +99,42 @@
       udp.endPacket();
     }
   }
+
+  void sendButton(boolean pressed) {  
+    if(connected){
+      //Send a packet
+      udp.beginPacket(udpAddress,udpPort);
+      udp.print(chipid);
+      udp.print(";");      
+      udp.print("btn;");
+      udp.print(pressed ? 1 : 0);
+      udp.endPacket();
+    }
+  }
+
   
   void checkWifi() {
     if(connected) return;
     reconnectToWifi();
+  }
+
+  void receive() {
+    int packetSize = udp.parsePacket();
+    if (packetSize) {
+      Serial.printf("Received %d bytes from %s, port %d\n", packetSize, udp.remoteIP().toString().c_str(), udp.remotePort());
+      int len = udp.read(incomingPacket, 255);
+      if (len > 0) {
+        incomingPacket[len] = '\0';
+      }
+
+      // TODO: move elsewhere
+      if(incomingPacket[0] == CMD_PING){
+        matrix::allOn(3, 300);
+        Serial.println("all on");
+      }
+
+      Serial.printf("UDP packet contents: %s\n", incomingPacket);
+    }  
   }
 
 #endif
