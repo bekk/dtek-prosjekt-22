@@ -9,6 +9,7 @@
   void sendYPR(float* ypr){}
   void checkWifi(){}
   void sendButton(boolean pressed) {}
+  void receive() {}
 #else  
   #include <WiFi.h>
   #include <WiFiUdp.h>
@@ -16,14 +17,17 @@
   const uint64_t chipid = ESP.getEfuseMac();
   
   // WiFi network name and password:
-  const char * networkName = "Monopoly";
-  const char * networkPswd = "jupiter8prophet5";
+//  const char * networkName = "Monopoly";
+//  const char * networkPswd = "jupiter8prophet5";
+  const char * networkName = "SoftCity1";
+  const char * networkPswd = "pushwagner";
   
   
   // IP address to send UDP data to:
   // Either use the ip address of the server or
   // a network broadcast address
-  const char * udpAddress = "192.168.1.38";
+  const char * udpAddress = "10.0.1.3";
+  //const char * udpAddress = "192.168.1.38";
   const int udpPort = 8000;
 
   char incomingPacket[256];  
@@ -56,8 +60,10 @@
   
     // delete old config
     WiFi.disconnect(true);
+    
     //register event handler
     WiFi.onEvent(WiFiEvent);
+//    WiFi.setPhyMode(WIFI_PHY_MODE_11N);
   
     //Initiate connection
     WiFi.begin(networkName, networkPswd);
