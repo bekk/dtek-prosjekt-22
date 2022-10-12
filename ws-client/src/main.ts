@@ -1,90 +1,73 @@
 import P5 from "p5";
 
-type Color = "white" | "black" | "#60dd49";
-type ParticleType = "normal" | "eraser" | "accent";
+const STROKE = "black";
+const STROKE_WEIGHT = 10;
+const SIZE = 800;
+const POINT_COUNT = 0;
+const POINT_SIZE = 5;
 
-type Particle = {
-  x: number;
-  y: number;
-  angle: number;
-  type: ParticleType;
-};
-
-const PARTICLE_COUNT = 1000;
-const NOISE_ZOOM = 200;
-
-type TypeValues = {
-  type: ParticleType;
-  color: Color;
-  strokeWeight: number;
-  typeWeight: number;
-};
-
-const TYPE_VALUES: Record<ParticleType, TypeValues> = {
-  normal: { type: "normal", color: "black", strokeWeight: 10, typeWeight: 100 },
-  eraser: { type: "eraser", color: "white", strokeWeight: 10, typeWeight: 100 },
-  accent: { type: "accent", color: "#60dd49", strokeWeight: 30, typeWeight: 1 },
-};
-
-const getRandomParticleType = (p: P5) => {
-  const values = [TYPE_VALUES["normal"], TYPE_VALUES["accent"], TYPE_VALUES["eraser"]];
-  const types = [];
-  for (const type of values) {
-    for (let i = 0; i < type.typeWeight; i++) {
-      types.push(type.type);
-    }
-  }
-  return p.random(types);
-};
-
-const updateParticle = (p: P5, particle: Particle) => {
-  // Oppdater verdier
-  const angle = p.noise(particle.x / NOISE_ZOOM, particle.y / NOISE_ZOOM, p.frameCount / NOISE_ZOOM);
-
-  const STEP = TYPE_VALUES[particle.type].strokeWeight / 4;
-  const xStep = particle.x + STEP * p.cos(angle);
-  const yStep = particle.y + STEP * p.sin(angle);
-  particle.x = xStep;
-  particle.y = yStep;
-
-  // Dersom den går utenfor skjermen
-  if (particle.x > p.width || particle.y > p.height) {
-    particle.x = p.random(p.width);
-    particle.y = p.random(p.height);
-  }
-
-  // Tegn!
-  p.strokeWeight(TYPE_VALUES[particle.type].strokeWeight);
-  p.stroke(TYPE_VALUES[particle.type].color);
-  p.point(particle.x, particle.y);
-};
+const LINE_COUNT = 3;
+const LINE_WIDTH = 10;
+const LINE_GAP = 0; // Dette kjører så dritt at det ikke er verdt det
+const LINE_SPEED_X = 0;
+const LINE_SPEED_Y = 0;
+const LINE_ROTATION_SPEED = 2;
 
 const sketch = (p: P5) => {
-  const particles: Particle[] = [];
-
   p.setup = () => {
     const canvas = p.createCanvas(1920, 1080);
     canvas.parent("app");
-    p.noFill();
+    p.strokeWeight(STROKE_WEIGHT);
+    p.rectMode(p.CENTER);
+    p.stroke(STROKE);
+  };
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const x = p.random(p.width);
-      const y = p.random(p.height);
-      const vector = p.createVector(x, y);
+  const drawStuff = (x1: number, y1: number, x2: number, y2: number) => {
+    for (let i = 0; i < POINT_COUNT; i++) {
+      p.point(p.random(x1, x2), p.random(y1, y2));
+    }
 
-      particles.push({
-        x,
-        y,
-        type: getRandomParticleType(p),
-        angle: p.TWO_PI * p.noise(vector.x / NOISE_ZOOM, vector.y / NOISE_ZOOM),
-      });
+    const pixelsPerLine = (y2 - y1) / LINE_COUNT;
+    const offset = (p.frameCount * LINE_SPEED_Y) % pixelsPerLine;
+    p.push();
+
+    p.rotate((p.frameCount / 100) * LINE_ROTATION_SPEED);
+    const ymax = y2 - y1;
+    const ymin = ymax / 2;
+    const xdiff = x2 - x1;
+
+    for (let i = -ymin; i < ymax + ymin; i += pixelsPerLine) {
+      p.drawingContext.setLineDash([LINE_WIDTH, LINE_GAP]);
+      p.drawingContext.lineDashOffset = -p.frameCount * LINE_SPEED_X;
+      p.line(x1 - xdiff, y1 + i + offset, x2 + xdiff, y1 + i + offset);
     }
   };
 
+  const cleanWhitespace = () => {
+    p.noStroke();
+    p.rect((p.width - SIZE) / 4, p.height / 2, (p.width - SIZE) / 2, p.height);
+    p.rect(p.width - (p.width - SIZE) / 4, p.height / 2, (p.width - SIZE) / 2, p.height);
+    p.rect(p.width / 2, p.height - (p.height - SIZE) / 4, p.width, (p.height - SIZE) / 2);
+    p.rect(p.width / 2, (p.height - SIZE) / 4, p.width, (p.height - SIZE) / 2);
+    p.stroke(STROKE);
+  };
+
   p.draw = () => {
-    for (const particle of particles) {
-      updateParticle(p, particle);
-    }
+    p.push();
+    p.translate(p.width / 2, p.height / 2);
+
+    p.background("white");
+
+    p.strokeWeight(STROKE_WEIGHT);
+    p.drawingContext.setLineDash([]);
+    p.rect(0, 0, SIZE);
+
+    p.strokeWeight(POINT_SIZE);
+    drawStuff(-SIZE / 2, -SIZE / 2, SIZE / 2, SIZE / 2);
+
+    p.pop();
+    p.pop();
+    cleanWhitespace();
   };
 };
 
