@@ -114,10 +114,14 @@ function createWebServer({ port, db }: { port: number; db: Database }) {
 
   wsServer.on("connection", socket => {
     socket.addEventListener("message", message => {
-      const event = JSON.parse(message.data.toString());
-      if (event.cmd && event.cmd === "ping") {
-        const { target } = event;
-        eventBus.emit("command", "ping");
+      const data = message.data.toString()
+      try {
+        const event = JSON.parse(data);
+        if (event.cmd) {
+          eventBus.emit("command", event.cmd, event.payload || {});
+        }
+      } catch {
+        console.log(`level=info msg="Could not parse WebSocket message '${data}'."`)
       }
     });
   });
@@ -209,20 +213,18 @@ function createDatagramServer({
       `level=info msg="UDP server is listening on ${serverAddress}:${serverPort}."`
     );
 
-    eventBus.addListener("command", (...args) => {
-      const command = args[0];
-      switch (command) {
-        case "ping": {
-          console.log("level=info msg=\"Publishing ping.\"");
-          clients.forEach((clientId) => {
-            const [address, port] = clientId.split(':')
-            server.send(buttonCommands.PING, Number.parseInt(port), address)
-          });
-          break;
-        }
-        default:
-          console.log(`level=info msg="Command '${command}' not supported."`);
+    eventBus.addListener("command", (command, payload) => {
+      const commandBytes = buttonCommands.stringToCommand(command);
+      if (commandBytes === null) {
+        console.log(`level=info msg="Command '${command}' not supported."`);
+        return;
       }
+      console.log(`level=info msg="Publishing command ${command}."`);
+
+      clients.forEach((clientId) => {
+        const [address, port] = clientId.split(':')
+        server.send(commandBytes, Number.parseInt(port), address)
+      });
     })
 
     if (demo) {
