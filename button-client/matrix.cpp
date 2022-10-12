@@ -37,7 +37,8 @@ namespace matrix {
                               NEO_GRB            + NEO_KHZ800);
   
   const uint16_t colors[] = {
-    matrix.Color(255, 0, 0), 
+    //matrix.Color(255, 0, 0), // RED
+    matrix.Color(121, 255, 51), 
     matrix.Color(0, 255, 0), 
     matrix.Color(255, 255, 0), 
     matrix.Color(0, 0, 255), 
