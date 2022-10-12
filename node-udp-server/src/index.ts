@@ -26,6 +26,8 @@ interface DatabaseChunk {
 
 type ListenerFn = (newChunk: DatabaseChunk) => void;
 
+const eventBus = new EventEmitter();
+
 async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
   const emitter = new EventEmitter();
   const db = new sqlite.Database(dbPath);
@@ -109,6 +111,16 @@ async function createDatabase(dbPath: string = ":memory:"): Promise<Database> {
 
 function createWebServer({ port, db }: { port: number; db: Database }) {
   const wsServer = new WebSocketServer({ port: 8002 });
+
+  wsServer.on("connection", socket => {
+    socket.addEventListener("message", message => {
+      const event = JSON.parse(message.data.toString());
+      if (event.cmd && event.cmd === "ping") {
+        const { target } = event;
+        eventBus.emit("command", "ping");
+      }
+    });
+  });
 
   db.addAppendListener((data) =>
     wsServer.clients.forEach((ws) => ws.send(JSON.stringify(data)))
@@ -196,6 +208,22 @@ function createDatagramServer({
     console.log(
       `level=info msg="UDP server is listening on ${serverAddress}:${serverPort}."`
     );
+
+    eventBus.addListener("command", (...args) => {
+      const command = args[0];
+      switch (command) {
+        case "ping": {
+          console.log("level=info msg=\"Publishing ping.\"");
+          clients.forEach((clientId) => {
+            const [address, port] = clientId.split(':')
+            server.send(buttonCommands.PING, Number.parseInt(port), address)
+          });
+          break;
+        }
+        default:
+          console.log(`level=info msg="Command '${command}' not supported."`);
+      }
+    })
 
     if (demo) {
       const client = udp.createSocket("udp4");

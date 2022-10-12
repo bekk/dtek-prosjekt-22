@@ -10,11 +10,14 @@
 
 <body>
   <h1>WebSocket test</h1>
-
-  <div id="list" style="font-family: monospace"></div>
+  <button id="ping-button">Ping!</button>
+  
+  <div id="list" style="font-family: monospace; border: 1px solid black;"></div>
 
   <script>
     const list = document.getElementById('list');
+    const pingButton = document.getElementById('ping-button');
+
     const ws = new WebSocket('ws://localhost:8002');
 
     ws.addEventListener('open', () => console.log(`Connected!`));
@@ -24,7 +27,11 @@
       const e = document.createElement('div');
       e.innerText = ev.data;
       list.appendChild(e);
-    })
+    });
+
+    pingButton.addEventListener("click", event => {
+      ws.send(JSON.stringify({ cmd: "ping" }));
+    });
 
 
   </script>
