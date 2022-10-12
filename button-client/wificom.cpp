@@ -3,6 +3,7 @@
 #include "matrix.h"
 
 #define CMD_PING 0
+#define CMD_TEXT 1
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
@@ -131,6 +132,11 @@
       if(incomingPacket[0] == CMD_PING){
         matrix::allOn(3, 300);
         Serial.println("all on");
+      } else if(incomingPacket[0] == CMD_TEXT) {
+        for(int i=1; i<=len; i++){
+          incomingPacket[i-1] = incomingPacket[i];
+        }
+        matrix::writeTextIfReady(incomingPacket, 0);
       }
 
       Serial.printf("UDP packet contents: %s\n", incomingPacket);

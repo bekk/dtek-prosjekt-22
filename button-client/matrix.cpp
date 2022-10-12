@@ -63,7 +63,7 @@ namespace matrix {
 
   // frame stuff
   unsigned long lastUpdate = 0;
-  const int frameDelay = 40;
+  const int frameDelay = 80;
   
   void init() {
     matrix.begin();
@@ -73,13 +73,15 @@ namespace matrix {
   }
 
   void update() {
+    /*    
     if(isScrolling) return;
     char exampleText[] = "Shake it!";
     writeText(exampleText, 0);
+    */
   }
 
   void nextFrame() {
-        // BLANK the Entire Screen;
+    // BLANK the Entire Screen;
     matrix.fillScreen(0); 
 
     // Set Starting Point for Text String;
@@ -115,7 +117,13 @@ namespace matrix {
     isOn = false;
     matrix.fillScreen(0);
   }
-    
+
+  void writeTextIfReady(String msg, int colorIndex) {
+    if(!isScrolling) {
+      writeText(msg, colorIndex);
+    }
+  }
+
   void writeText(String msg, int colorIndex) {
     reset();
     currMsg = msg;

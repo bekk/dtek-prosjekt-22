@@ -237,7 +237,16 @@ function createDatagramServer({
     //if(name === 'ypr') {
       clients.forEach((clientId) => {
         const [address, port] = clientId.split(':')
-        server.send(buttonCommands.PING, Number.parseInt(port), address)
+        const command = buttonCommands.TEXT
+        const text = new TextEncoder().encode("Hello there");
+
+        const payload = new Uint8Array(command.length + text.length);
+        payload.set(command);
+        payload.set(text, command.length);
+
+        //server.send(buttonCommands.PING, Number.parseInt(port), address)
+        server.send(payload, Number.parseInt(port), address)
+        console.log('sent text to clients')
       })
     }
 
