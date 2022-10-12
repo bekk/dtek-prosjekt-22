@@ -8,6 +8,7 @@ namespace matrix {
   void reset();
   void update();
   void writeText(String msg, int colorIndex);
+  void writeTextIfReady(String msg, int colorIndex);
   void allOn(int colorIndex, int time);
 
 }

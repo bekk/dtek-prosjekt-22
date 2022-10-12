@@ -1,8 +1,11 @@
 #include "wificom.h"
 #include "Arduino.h"
 #include "matrix.h"
+#include "pins.h"
 
 #define CMD_PING 0
+#define CMD_TEXT 1
+#define CMD_BUTTON_LED 2
 
 #ifndef WIFI_CONNECT
   void connectToWifi(){}
@@ -127,14 +130,27 @@
         incomingPacket[len] = '\0';
       }
 
+      Serial.printf("UDP packet contents: %s\n", incomingPacket);
+
       // TODO: move elsewhere
       if(incomingPacket[0] == CMD_PING){
         matrix::allOn(3, 300);
         Serial.println("all on");
+      } else if(incomingPacket[0] == CMD_TEXT) {
+        for(int i=1; i<=len; i++){
+          incomingPacket[i-1] = incomingPacket[i];
+        }
+        matrix::writeTextIfReady(incomingPacket, 0);
+      } else if(incomingPacket[0] == CMD_BUTTON_LED) {
+        if(incomingPacket[1] == 1) {
+          digitalWrite(PIN_BUTTON_LED, LOW);
+          Serial.println("Button LED on");
+        } else {
+          digitalWrite(PIN_BUTTON_LED, HIGH);
+          Serial.println("Button LED off");
+        }
       }
-
-      Serial.printf("UDP packet contents: %s\n", incomingPacket);
-    }  
+    }
   }
 
 #endif

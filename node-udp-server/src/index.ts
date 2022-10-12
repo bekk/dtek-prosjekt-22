@@ -183,6 +183,13 @@ const handleMessage = (chipId: string, eventName: string, data: string[]) => {
     }
 }
 
+function getPayload(command: Uint8Array, data: Uint8Array) {
+  const payload = new Uint8Array(command.length + data.length);
+  payload.set(command);
+  payload.set(data, command.length);
+  return payload
+}
+
 function createDatagramServer({
   port,
   db,
@@ -241,6 +248,7 @@ function createDatagramServer({
     }
   });
 
+  let ledState = 0;
   server.on("message", (msg, info) => {
     const clientId = `${info.address}:${info.port}`
     if(!clients.includes(clientId)){
@@ -264,10 +272,18 @@ function createDatagramServer({
 
     // Test of returning data to all clients
     if(name === 'btn' && data[0] === '1') {
-    //if(name === 'ypr') {
       clients.forEach((clientId) => {
         const [address, port] = clientId.split(':')
-        server.send(buttonCommands.PING, Number.parseInt(port), address)
+        const command = buttonCommands.TEXT
+        const text = new TextEncoder().encode("Hello there")
+
+        //server.send(buttonCommands.PING, Number.parseInt(port), address)
+        server.send(getPayload(command, text), Number.parseInt(port), address)
+        console.log('sent text to clients')
+        
+        ledState = ledState === 0 ? 1 : 0
+        server.send(getPayload(buttonCommands.BUTTON_LED, new Uint8Array([ledState])), Number.parseInt(port), address)
+        console.log(`Sent ledstate ${ledState}`)
       })
     }
 
