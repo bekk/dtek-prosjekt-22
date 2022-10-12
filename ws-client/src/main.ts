@@ -1,32 +1,90 @@
 import P5 from "p5";
 
-// Creating the sketch itself
-const sketch = (p: P5) => {
-  let shader: P5.Shader;
+type Color = "white" | "black" | "#60dd49";
+type ParticleType = "normal" | "eraser" | "accent";
 
-  p.preload = () => {
-    shader = p.loadShader("src/vert.glsl", "src/frag.glsl");
-  };
+type Particle = {
+  x: number;
+  y: number;
+  angle: number;
+  type: ParticleType;
+};
+
+const PARTICLE_COUNT = 1000;
+const NOISE_ZOOM = 200;
+
+type TypeValues = {
+  type: ParticleType;
+  color: Color;
+  strokeWeight: number;
+  typeWeight: number;
+};
+
+const TYPE_VALUES: Record<ParticleType, TypeValues> = {
+  normal: { type: "normal", color: "black", strokeWeight: 10, typeWeight: 100 },
+  eraser: { type: "eraser", color: "white", strokeWeight: 10, typeWeight: 100 },
+  accent: { type: "accent", color: "#60dd49", strokeWeight: 30, typeWeight: 1 },
+};
+
+const getRandomParticleType = (p: P5) => {
+  const values = [TYPE_VALUES["normal"], TYPE_VALUES["accent"], TYPE_VALUES["eraser"]];
+  const types = [];
+  for (const type of values) {
+    for (let i = 0; i < type.typeWeight; i++) {
+      types.push(type.type);
+    }
+  }
+  return p.random(types);
+};
+
+const updateParticle = (p: P5, particle: Particle) => {
+  // Oppdater verdier
+  const angle = p.noise(particle.x / NOISE_ZOOM, particle.y / NOISE_ZOOM, p.frameCount / NOISE_ZOOM);
+
+  const STEP = TYPE_VALUES[particle.type].strokeWeight / 4;
+  const xStep = particle.x + STEP * p.cos(angle);
+  const yStep = particle.y + STEP * p.sin(angle);
+  particle.x = xStep;
+  particle.y = yStep;
+
+  // Dersom den går utenfor skjermen
+  if (particle.x > p.width || particle.y > p.height) {
+    particle.x = p.random(p.width);
+    particle.y = p.random(p.height);
+  }
+
+  // Tegn!
+  p.strokeWeight(TYPE_VALUES[particle.type].strokeWeight);
+  p.stroke(TYPE_VALUES[particle.type].color);
+  p.point(particle.x, particle.y);
+};
+
+const sketch = (p: P5) => {
+  const particles: Particle[] = [];
 
   p.setup = () => {
-    const canvas = p.createCanvas(1920, 1080, p.WEBGL);
+    const canvas = p.createCanvas(1920, 1080);
     canvas.parent("app");
-    p.noStroke();
-    p.shader(shader);
+    p.noFill();
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const x = p.random(p.width);
+      const y = p.random(p.height);
+      const vector = p.createVector(x, y);
+
+      particles.push({
+        x,
+        y,
+        type: getRandomParticleType(p),
+        angle: p.TWO_PI * p.noise(vector.x / NOISE_ZOOM, vector.y / NOISE_ZOOM),
+      });
+    }
   };
 
-  // The sketch draw method
   p.draw = () => {
-    p.background("antiquewhite");
-
-    shader.setUniform("uFrameCount", p.frameCount * 2);
-
-    p.rotateX(p.frameCount * 0.02);
-    p.rotateY(p.frameCount * 0.01);
-
-    // Draw some geometry to the screen
-    // We're going to tessellate the sphere a bit so we have some more geometry to work with
-    p.sphere(p.noise(p.frameCount * 0.001) * p.height, 200, 200);
+    for (const particle of particles) {
+      updateParticle(p, particle);
+    }
   };
 };
 
